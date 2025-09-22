@@ -1,3 +1,4 @@
+```mermaid
 classDiagram
     class Game {
         - List~Player~ players
