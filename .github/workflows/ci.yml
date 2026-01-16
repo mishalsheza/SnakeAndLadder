@@ -1,46 +1,86 @@
-name: CI Pipeline with Trivy Scan
+name: CI Pipeline
 
+# Trigger on push to main or manual trigger
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-and-scan:
+  build-test-scan:
+    name: Build, Test & Security Scan
     runs-on: ubuntu-latest
 
+    env:
+      DOCKER_IMAGE: snake-ladder-app
+
     steps:
-      # 1) Checkout code
-      - name: Checkout code
+      # 1️⃣ Checkout the repo
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2) Set up Java 17
-      - name: Set up Java 17
+      # 2️⃣ Setup Java 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          distribution: temurin
           java-version: 17
+          distribution: temurin
 
-      # 3) Build JAR
-      - name: Build JAR with Maven
-        run: mvn clean package -DskipTests
-
-      # 4) Build Docker image
-      - name: Build Docker image
-        run: docker build -t snake-ladder-backend:ci .
-
-      # 5) Install Trivy (correct published version)
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.3
+      # 3️⃣ Cache Maven dependencies
+      - name: Cache Maven Dependencies
+        uses: actions/cache@v3
         with:
-          version: v0.65.0
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
-      # 6) Run Trivy scan
-      - name: Scan Docker image with Trivy
-        run: trivy image --severity HIGH,CRITICAL --ignore-unfixed snake-ladder-backend:ci
+      # 4️⃣ Build with Maven
+      - name: Build & Compile
+        run: mvn clean install -DskipTests=true
 
-      # 7) Fail on HIGH/CRITICAL vulnerabilities
-      - name: Fail if vulnerable
-        if: failure()
-        run: echo "❌ High or critical vulnerabilities detected" && exit 1
+      # 5️⃣ Run Unit Tests
+      - name: Run Unit Tests
+        run: mvn test
+
+      # 6️⃣ Code Quality (Checkstyle)
+      - name: Checkstyle
+        run: mvn checkstyle:check || echo "Checkstyle warnings found"
+
+      # 7️⃣ Dependency Vulnerability Scan
+      - name: Dependency Check (SCA)
+        uses: OWASP/dependency-check-action@v2
+        with:
+          project: snake-ladder
+          scan-path: ./pom.xml
+          format: HTML
+          fail-on-high: true
+
+      # 8️⃣ Build Docker Image
+      - name: Build Docker Image
+        run: docker build -t $DOCKER_IMAGE:latest .
+
+      # 9️⃣ Install Trivy (Container Vulnerability Scan)
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@master
+
+      # 🔟 Scan Docker Image
+      - name: Scan Docker Image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: $DOCKER_IMAGE:latest
+          exit-code: 1 # Fail pipeline on vulnerabilities
+          severity: CRITICAL,HIGH
+
+      # 1️⃣1️⃣ Optional: Push to DockerHub
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Docker Image
+        run: |
+          docker tag $DOCKER_IMAGE:latest ${{ secrets.DOCKERHUB_USERNAME }}/$DOCKER_IMAGE:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/$DOCKER_IMAGE:latest

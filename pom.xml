@@ -4,12 +4,13 @@
                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-  <groupId>org.springframework.boot</groupId>
-  <artifactId>spring-boot-starter-parent</artifactId>
-  <version>3.4.5</version>
-</parent>
-
+    <!-- Parent Spring Boot starter -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.0</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
 
     <groupId>com.example</groupId>
     <artifactId>snake-ladder</artifactId>
@@ -21,21 +22,24 @@
     </properties>
 
     <dependencies>
-       <dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-core</artifactId>
-    <version>6.2.11</version> <!-- Upgrade to safe version -->
-</dependency>
+        <!-- Spring Boot Web for REST controllers -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Jackson JSON -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-    <groupId>org.apache.tomcat.embed</groupId>
-    <artifactId>tomcat-embed-core</artifactId>
-    <version>10.1.42</version> <!-- Upgrade to safe version -->
-</dependency>
     </dependencies>
 
     <build>
@@ -46,5 +50,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
