@@ -31,7 +31,7 @@ jobs:
 
       # Install Trivy
       - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.33.1
+        uses: aquasecurity/setup-trivy@v0
 
       # Scan Docker image
       - name: Scan Docker image with Trivy
