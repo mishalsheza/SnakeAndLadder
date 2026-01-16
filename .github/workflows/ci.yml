@@ -27,6 +27,14 @@ jobs:
       - name: Build with Maven
         run: mvn clean package
 
-      # 🔹 NEW STEP
       - name: Build Docker image
         run: docker build -t snake-ladder-backend:ci .
+
+      # 🔐 NEW: Trivy Image Scan
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: snake-ladder-backend:ci
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
