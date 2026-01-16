@@ -12,27 +12,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Build the Docker image
       - name: Build Docker image
-        run: |
-          docker build -t snake-ladder-backend:ci .
+        run: docker build -t snake-ladder-backend:ci .
 
-      # Install Trivy
-      - name: Install Trivy
-        uses: aquasecurity/trivy-action@v0.11.0
-
-      # Run Trivy scan
       - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@v0.11.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: snake-ladder-backend:ci
           format: table
-          severity: HIGH,CRITICAL
+          exit-code: 1
           ignore-unfixed: true
-
-      # Optionally, fail the job if vulnerabilities are found
-      - name: Fail on high/critical vulnerabilities
-        if: failure()
-        run: echo "🚨 High or critical vulnerabilities detected!" && exit 1
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
