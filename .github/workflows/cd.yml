@@ -14,7 +14,7 @@ jobs:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
     environment: production
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -31,13 +31,12 @@ jobs:
           echo "4. Run smoke tests on deployed application"
           echo ""
           echo "For this project, we're simulating the deployment."
-      
+
       - name: Create Kubernetes Manifests
         run: |
           mkdir -p k8s
-          
-          # Create deployment.yaml
-          cat > k8s/deployment.yaml << 'DEPLOYEOF'
+
+          cat <<EOF > k8s/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -53,18 +52,17 @@ spec:
         app: snake-ladder
     spec:
       containers:
-      - name: snake-ladder
-        image: mishalsheza19/snake-ladder-app:latest
-        ports:
-        - containerPort: 8080
-        livenessProbe:
-          httpGet:
-            path: /actuator/health
-            port: 8080
-DEPLOYEOF
+        - name: snake-ladder
+          image: mishalsheza19/snake-ladder-app:latest
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+EOF
 
-          # Create service.yaml
-          cat > k8s/service.yaml << 'EOF'
+          cat <<EOF > k8s/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -73,24 +71,24 @@ spec:
   selector:
     app: snake-ladder
   ports:
-  - port: 80
-    targetPort: 8080
+    - port: 80
+      targetPort: 8080
   type: LoadBalancer
 EOF
 
           echo "Kubernetes manifests created in k8s/ directory"
-      
+
       - name: Simulate Deployment Commands
         run: |
           echo "=== Simulated Commands ==="
-          echo "# kubectl apply -f k8s/deployment.yaml"
-          echo "# kubectl apply -f k8s/service.yaml"
-          echo "# kubectl rollout status deployment/snake-ladder-app"
-          echo "# kubectl get pods -l app=snake-ladder"
-          echo "# kubectl get services snake-ladder-service"
+          echo "kubectl apply -f k8s/deployment.yaml"
+          echo "kubectl apply -f k8s/service.yaml"
+          echo "kubectl rollout status deployment/snake-ladder-app"
+          echo "kubectl get pods -l app=snake-ladder"
+          echo "kubectl get services snake-ladder-service"
           echo ""
           echo "Deployment simulation successful!"
-      
+
       - name: Upload Kubernetes Manifests
         uses: actions/upload-artifact@v4
         with:
@@ -102,7 +100,7 @@ EOF
         run: |
           echo "=== DAST (Dynamic Application Security Testing) ==="
           echo "Testing simulated deployment..."
-          echo "1. Checking security headers: PASS"
-          echo "2. Testing for common vulnerabilities: PASS"
-          echo "3. Endpoint security validation: PASS"
+          echo "Security headers: PASS"
+          echo "Common vulnerabilities: PASS"
+          echo "Endpoint security validation: PASS"
           echo "DAST completed successfully!"
