@@ -10,13 +10,13 @@ on:
 
 env:
   IMAGE_NAME: snake-ladder-app
-  JAVA_VERSION: '17'
+  JAVA_VERSION: "17"
 
 jobs:
   build-test:
     name: Build, Test & Containerize
     runs-on: ubuntu-latest
-    
+
     steps:
       # 1️⃣ Checkout code
       - name: Checkout Code
@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
+          distribution: "temurin"
           cache: maven
 
       # 3️⃣ Build Application
@@ -42,10 +42,10 @@ jobs:
       - name: Dependency Vulnerability Scan
         uses: dependency-check/Dependency-Check_Action@v5.2.2
         with:
-          project: 'snake-ladder-app'
-          path: '.'
-          format: 'SARIF'  # Single format parameter - fixed the error!
-          output: './reports'
+          project: "snake-ladder-app"
+          path: "."
+          format: "SARIF" # Single format parameter - fixed the error!
+          output: "./reports"
         continue-on-error: true
 
       # 6️⃣ Upload Dependency Check Report
@@ -68,9 +68,9 @@ jobs:
         uses: aquasecurity/trivy-action@0.29.0
         with:
           image-ref: ${{ env.IMAGE_NAME }}:latest
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
           ignore-unfixed: true
         continue-on-error: true
 
@@ -109,4 +109,3 @@ jobs:
           docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-EOF
