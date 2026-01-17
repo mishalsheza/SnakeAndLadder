@@ -31,7 +31,7 @@ jobs:
           echo "4. Run smoke tests on deployed application"
           echo ""
           echo "For this project, we're simulating the deployment."
-
+      
       - name: Create Kubernetes Manifests
         run: |
           mkdir -p k8s
@@ -64,7 +64,7 @@ spec:
 DEPLOYEOF
 
           # Create service.yaml
-          cat > k8s/service.yaml << 'SERVICEEOF'
+          cat > k8s/service.yaml << 'EOF'
 apiVersion: v1
 kind: Service
 metadata:
@@ -76,10 +76,10 @@ spec:
   - port: 80
     targetPort: 8080
   type: LoadBalancer
-SERVICEEOF
+EOF
 
           echo "Kubernetes manifests created in k8s/ directory"
-
+      
       - name: Simulate Deployment Commands
         run: |
           echo "=== Simulated Commands ==="
@@ -90,7 +90,7 @@ SERVICEEOF
           echo "# kubectl get services snake-ladder-service"
           echo ""
           echo "Deployment simulation successful!"
-
+      
       - name: Upload Kubernetes Manifests
         uses: actions/upload-artifact@v4
         with:
