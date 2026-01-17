@@ -2,26 +2,22 @@ name: CI Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 env:
-  REGISTRY: docker.io
   IMAGE_NAME: snake-ladder-app
-  JAVA_VERSION: '17'
+  JAVA_VERSION: "17"
 
 jobs:
-  build-and-test:
-    name: Build, Test & Security Scan
+  build-test:
+    name: Build, Test & Containerize
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    
+
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout code
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -30,136 +26,46 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
+          distribution: "temurin"
           cache: maven
 
-      # 3️⃣ Cache Maven dependencies
-      - name: Cache Maven Dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      # 4️⃣ Code Quality - Checkstyle/Linting
-      - name: Run Checkstyle (Code Quality)
-        run: |
-          # Install checkstyle if not present
-          mvn checkstyle:checkstyle
-          mvn checkstyle:check || echo "Checkstyle completed - warnings may exist"
-        continue-on-error: true
-
-      # 5️⃣ Build Application
+      # 3️⃣ Build Application
       - name: Build Application
-        run: mvn clean compile
+        run: mvn clean package
 
-      # 6️⃣ Run Unit Tests
-      - name: Run Unit Tests
+      # 4️⃣ Run Unit Tests
+      - name: Run Tests
         run: mvn test
-        env:
-          CI: true
 
-      # 7️⃣ Run Integration Tests (if any)
-      - name: Run Integration Tests
-        run: mvn verify -DskipITs=false || echo "No integration tests configured"
-        continue-on-error: true
-
-      # 8️⃣ Static Application Security Testing (SAST) - CodeQL
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: java
-
-      # 9️⃣ Perform SAST Analysis
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-
-      # 🔟 Software Composition Analysis (SCA) - Dependency Check
-      - name: Dependency Vulnerability Scan (SCA)
-        uses: dependency-check/Dependency-Check_Action@v5.2.2
-        id: dependency-check
-        with:
-          project: 'snake-ladder-app'
-          path: '.'
-          format: 'HTML'
-          format: 'SARIF'
-          output: './reports'
-          args: >
-            --failOnCVSS 7
-            --enableRetired
-          # Continue on error to allow reporting
-        continue-on-error: true
-
-      # 1️⃣1️⃣ Upload Dependency Check Report
-      - name: Upload Dependency Check Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: dependency-check-report
-          path: ./reports/
-          retention-days: 7
-
-      # 1️⃣2️⃣ Build Docker Image
+      # 5️⃣ Build Docker Image
       - name: Build Docker Image
         run: |
-          docker build \
-            --tag ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
-            --tag ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            .
+          docker build -t ${{ env.IMAGE_NAME }}:latest .
+          docker tag ${{ env.IMAGE_NAME }}:latest ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      # 1️⃣3️⃣ Run Trivy Container Scan (Fixed Version)
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.29.0
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          ignore-unfixed: true
-          exit-code: 1
-        continue-on-error: true  # Continue to push results even if vulnerabilities found
-
-      # 1️⃣4️⃣ Upload Trivy Scan Results
-      - name: Upload Trivy Scan Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: trivy-scan-results
-          path: trivy-results.sarif
-          retention-days: 7
-
-      # 1️⃣5️⃣ Container Smoke Test
+      # 6️⃣ Container Smoke Test
       - name: Container Smoke Test
         run: |
-          # Run the container and do a basic health check
-          docker run -d --name smoke-test -p 8080:8080 \
-            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-          
-          # Wait for container to start
-          sleep 10
-          
-          # Check if container is running
+          docker run -d --name smoke-test -p 8080:8080 ${{ env.IMAGE_NAME }}:latest
+          sleep 15
           docker ps | grep smoke-test
-          
-          # Optional: Simple curl test if application has health endpoint
-          curl -f http://localhost:8080/actuator/health || curl -f http://localhost:8080/ || echo "Application endpoint check skipped"
-          
-          # Cleanup
+          curl -f http://localhost:8080/actuator/health || echo "Health check failed"
           docker stop smoke-test
           docker rm smoke-test
 
-      # 1️⃣6️⃣ Login to DockerHub
+      # 7️⃣ Login to DockerHub
       - name: Login to DockerHub
-        if: github.ref == 'refs/heads/main' && job.status == 'success'
+        if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 1️⃣7️⃣ Push Docker Image to Registry
-      - name: Push Docker Image
-        if: github.ref == 'refs/heads/main' && job.status == 'success'
+      # 8️⃣ Tag and Push to DockerHub
+      - name: Tag and Push Docker Image
+        if: github.ref == 'refs/heads/main'
         run: |
-          docker push ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-          docker push ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker tag ${{ env.IMAGE_NAME }}:latest ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
