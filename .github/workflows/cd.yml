@@ -23,84 +23,56 @@ jobs:
         run: |
           echo "=== Kubernetes Deployment Simulation ==="
           echo "Image to deploy: mishalsheza19/snake-ladder-app:latest"
-          echo ""
-          echo "In real production, this would:"
-          echo "1. Configure kubectl with kubeconfig from GitHub Secrets"
-          echo "2. Apply Kubernetes manifests from k8s/ directory"
-          echo "3. Wait for deployment rollout"
-          echo "4. Run smoke tests on deployed application"
-          echo ""
-          echo "For this project, we're simulating the deployment."
+          echo "Simulating Kubernetes deployment steps"
 
       - name: Create Kubernetes Manifests
         run: |
           mkdir -p k8s
 
-          cat <<EOF > k8s/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: snake-ladder-app
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: snake-ladder
-  template:
-    metadata:
-      labels:
-        app: snake-ladder
-    spec:
-      containers:
-        - name: snake-ladder
-          image: mishalsheza19/snake-ladder-app:latest
-          ports:
-            - containerPort: 8080
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8080
-EOF
+          echo "apiVersion: apps/v1" > k8s/deployment.yaml
+          echo "kind: Deployment" >> k8s/deployment.yaml
+          echo "metadata:" >> k8s/deployment.yaml
+          echo "  name: snake-ladder-app" >> k8s/deployment.yaml
+          echo "spec:" >> k8s/deployment.yaml
+          echo "  replicas: 2" >> k8s/deployment.yaml
+          echo "  selector:" >> k8s/deployment.yaml
+          echo "    matchLabels:" >> k8s/deployment.yaml
+          echo "      app: snake-ladder" >> k8s/deployment.yaml
+          echo "  template:" >> k8s/deployment.yaml
+          echo "    metadata:" >> k8s/deployment.yaml
+          echo "      labels:" >> k8s/deployment.yaml
+          echo "        app: snake-ladder" >> k8s/deployment.yaml
+          echo "    spec:" >> k8s/deployment.yaml
+          echo "      containers:" >> k8s/deployment.yaml
+          echo "        - name: snake-ladder" >> k8s/deployment.yaml
+          echo "          image: mishalsheza19/snake-ladder-app:latest" >> k8s/deployment.yaml
+          echo "          ports:" >> k8s/deployment.yaml
+          echo "            - containerPort: 8080" >> k8s/deployment.yaml
 
-          cat <<EOF > k8s/service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: snake-ladder-service
-spec:
-  selector:
-    app: snake-ladder
-  ports:
-    - port: 80
-      targetPort: 8080
-  type: LoadBalancer
-EOF
-
-          echo "Kubernetes manifests created in k8s/ directory"
+          echo "apiVersion: v1" > k8s/service.yaml
+          echo "kind: Service" >> k8s/service.yaml
+          echo "metadata:" >> k8s/service.yaml
+          echo "  name: snake-ladder-service" >> k8s/service.yaml
+          echo "spec:" >> k8s/service.yaml
+          echo "  selector:" >> k8s/service.yaml
+          echo "    app: snake-ladder" >> k8s/service.yaml
+          echo "  ports:" >> k8s/service.yaml
+          echo "    - port: 80" >> k8s/service.yaml
+          echo "      targetPort: 8080" >> k8s/service.yaml
+          echo "  type: LoadBalancer" >> k8s/service.yaml
 
       - name: Simulate Deployment Commands
         run: |
-          echo "=== Simulated Commands ==="
           echo "kubectl apply -f k8s/deployment.yaml"
           echo "kubectl apply -f k8s/service.yaml"
           echo "kubectl rollout status deployment/snake-ladder-app"
-          echo "kubectl get pods -l app=snake-ladder"
-          echo "kubectl get services snake-ladder-service"
-          echo ""
-          echo "Deployment simulation successful!"
 
       - name: Upload Kubernetes Manifests
         uses: actions/upload-artifact@v4
         with:
           name: kubernetes-manifests
           path: k8s/
-          retention-days: 30
 
-      - name: DAST Test on Simulated Deployment
+      - name: DAST Test (Simulated)
         run: |
-          echo "=== DAST (Dynamic Application Security Testing) ==="
-          echo "Testing simulated deployment..."
-          echo "Security headers: PASS"
-          echo "Common vulnerabilities: PASS"
-          echo "Endpoint security validation: PASS"
-          echo "DAST completed successfully!"
+          echo "DAST simulation passed"
