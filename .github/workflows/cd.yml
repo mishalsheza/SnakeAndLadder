@@ -37,7 +37,7 @@ jobs:
           mkdir -p k8s
           
           # Create deployment.yaml
-          cat > k8s/deployment.yaml << 'K8SEOF'
+          cat > k8s/deployment.yaml << 'DEPLOYEOF'
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -61,10 +61,10 @@ spec:
           httpGet:
             path: /actuator/health
             port: 8080
-K8SEOF
+DEPLOYEOF
 
           # Create service.yaml
-          cat > k8s/service.yaml << 'K8SEOF'
+          cat > k8s/service.yaml << 'SERVICEEOF'
 apiVersion: v1
 kind: Service
 metadata:
@@ -76,7 +76,7 @@ spec:
   - port: 80
     targetPort: 8080
   type: LoadBalancer
-K8SEOF
+SERVICEEOF
 
           echo "Kubernetes manifests created in k8s/ directory"
 
